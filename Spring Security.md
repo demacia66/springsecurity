@@ -118,7 +118,7 @@
    }
    ```
 
-### 两个重要的接口
+## 两个重要的接口
 
 1. UserDetailsService 接口讲解
 
@@ -138,4 +138,47 @@
    2. 创建类实现UserDetailsService，编写查询数据过程，返回User对象，这个User对象是安全框架提供对象
 
 2. PasswordEncoder接口：进行密码加密，用于返回user对象里面密码加密
+
+
+
+## web权限方案
+
+### 设置用户名和密码
+
+1. 通过配置文件application.properties
+
+   ```properties
+   server.port=8111
+   spring.security.user.name=at
+   spring.security.user.password=at
+   ```
+
+2. 通过配置类
+
+   ````java
+   
+   @Configuration
+   public class SecurityConfig extends WebSecurityConfigurerAdapter {
+   
+       //可以设置用户名和密码
+       @Override
+       protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+           //用于加密
+           BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+           //进行加密
+           String password = passwordEncoder.encode("123");
+           //用户名，密码，角色
+           auth.inMemoryAuthentication().withUser("lucy").password(password).roles("admin");
+       }
+   
+       @Bean
+       PasswordEncoder password(){
+           return new BCryptPasswordEncoder();
+       }
+   }
+   ````
+
+   
+
+3. 自定义编写实现类
 
