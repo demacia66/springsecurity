@@ -182,3 +182,58 @@
 
 3. 自定义编写实现类
 
+   1. 创建配置类，设置使用哪个userDetailsService实现类
+
+      ```java
+      @Configuration
+      public class SecurityConfigTest extends WebSecurityConfigurerAdapter {
+          
+          @Autowired
+          private UserDetailsService userDetailsService;
+          
+          
+          @Override
+          protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+              auth.userDetailsService(userDetailsService).passwordEncoder(password());
+          }
+          
+          @Bean
+          PasswordEncoder password(){
+              return new BCryptPasswordEncoder();
+          }
+      }
+      ```
+
+   2. 编写实现类，返回User对象，User对象有用户名密码和操作权限
+
+      ```java
+      @Configuration
+      public class SecurityConfigTest extends WebSecurityConfigurerAdapter {
+      
+          @Autowired
+          private UserDetailsService userDetailsService;
+      
+      
+          @Override
+          protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+              auth.userDetailsService(userDetailsService).passwordEncoder(password());
+          }
+      
+          @Bean
+          PasswordEncoder password(){
+              return new BCryptPasswordEncoder();
+          }
+      }
+      ```
+
+      ```java
+      @Service("userDetailsService")//名字要一样，否则注入不进去
+      public class MyUserDetailsService implements UserDetailsService {
+          @Override
+          public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+              List<GrantedAuthority> auths = AuthorityUtils.commaSeparatedStringToAuthorityList("role");
+              //权限不能写空
+              return new User("mary",new BCryptPasswordEncoder().encode("123"),auths);
+          }
+      }
+      ```
