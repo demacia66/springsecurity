@@ -240,107 +240,127 @@
 
 ### 实现数据库认证来完成数据库登录
 
-1. 准备sql，整合MyBatisPlus完成数据库操作
+准备sql，整合MyBatisPlus完成数据库操作
 
-   1. 引入相关依赖
+1. 引入相关依赖
 
-      ```xml
-      <!--        mybatis-plus-->
-              <dependency>
-                  <groupId>com.baomidou</groupId>
-                  <artifactId>mybatis-plus-boot-starter</artifactId>
-                  <version>3.0.5</version>
-              </dependency>
-      
-      <!--        mysql-->
-              <dependency>
-                  <groupId>mysql</groupId>
-                  <artifactId>mysql-connector-java</artifactId>
-              </dependency>
-      
-              <!--lombok用来简化实体类-->
-              <dependency>
-                  <groupId>org.projectlombok</groupId>
-                  <artifactId>lombok</artifactId>
-              </dependency>
-      ```
+   ```xml
+   <!--        mybatis-plus-->
+           <dependency>
+               <groupId>com.baomidou</groupId>
+               <artifactId>mybatis-plus-boot-starter</artifactId>
+               <version>3.0.5</version>
+           </dependency>
+   
+   <!--        mysql-->
+           <dependency>
+               <groupId>mysql</groupId>
+               <artifactId>mysql-connector-java</artifactId>
+           </dependency>
+   
+           <!--lombok用来简化实体类-->
+           <dependency>
+               <groupId>org.projectlombok</groupId>
+               <artifactId>lombok</artifactId>
+           </dependency>
+   ```
 
-   2. 创建数据库和数据表
+2. 创建数据库和数据表
 
-   3. 创建users表对应的实体类
+3. 创建users表对应的实体类
 
-      ```java
-      @Data//生成对应的get set toString
-      public class Users {
-      
-          private Integer id;
-          private String username;
-          private String password;
-      }
-      ```
+   ```java
+   @Data//生成对应的get set toString
+   public class Users {
+   
+       private Integer id;
+       private String username;
+       private String password;
+   }
+   ```
 
-   4. 整合mp，创建接口，继承mp的接口
+4. 整合mp，创建接口，继承mp的接口
 
-      ```java
-      @Repository//不加会报错
-      public interface UserMapper extends BaseMapper<Users> {
-      }
-      ```
+   ```java
+   @Repository//不加会报错
+   public interface UserMapper extends BaseMapper<Users> {
+   }
+   ```
 
-   5. 在MyUserDetailsService调用mapper里面的方法查询数据库
+5. 在MyUserDetailsService调用mapper里面的方法查询数据库
 
-      ```java
-      @Service("userDetailsService")
-      public class MyUserDetailsService implements UserDetailsService {
-          @Autowired
-          private UserMapper userMapper;
-      
-          @Override
-          public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-      
-              //调用userMapper方法调用数据库,根据用户名查询数据库
-              //查询构造器
-              QueryWrapper<Users> wrapper = new QueryWrapper<>();
-              // where username=?
-              wrapper.eq("username",username);
-      
-              Users users = userMapper.selectOne(wrapper);
-              //判断
-              if (users == null){
-                  //数据库中没有用户名，认证失败
-                  throw new UsernameNotFoundException("用户名不存在！");
-              }
-      
-              List<GrantedAuthority> auths = AuthorityUtils.commaSeparatedStringToAuthorityList("role");
-              //从数据库中返回Users对象，得到用户名密码，返回
-              return new User(users.getUsername(), new BCryptPasswordEncoder().encode(users.getUsername()), auths);
-      
-      //        List<GrantedAuthority> auths = AuthorityUtils.commaSeparatedStringToAuthorityList("role");
-      //        //权限不能写空
-      //        return new User("mary", new BCryptPasswordEncoder().encode("123"), auths);
-          }
-      }
-      ```
+   ```java
+   @Service("userDetailsService")
+   public class MyUserDetailsService implements UserDetailsService {
+       @Autowired
+       private UserMapper userMapper;
+   
+       @Override
+       public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+   
+           //调用userMapper方法调用数据库,根据用户名查询数据库
+           //查询构造器
+           QueryWrapper<Users> wrapper = new QueryWrapper<>();
+           // where username=?
+           wrapper.eq("username",username);
+   
+           Users users = userMapper.selectOne(wrapper);
+           //判断
+           if (users == null){
+               //数据库中没有用户名，认证失败
+               throw new UsernameNotFoundException("用户名不存在！");
+           }
+   
+           List<GrantedAuthority> auths = AuthorityUtils.commaSeparatedStringToAuthorityList("role");
+           //从数据库中返回Users对象，得到用户名密码，返回
+           return new User(users.getUsername(), new BCryptPasswordEncoder().encode(users.getUsername()), auths);
+   
+   //        List<GrantedAuthority> auths = AuthorityUtils.commaSeparatedStringToAuthorityList("role");
+   //        //权限不能写空
+   //        return new User("mary", new BCryptPasswordEncoder().encode("123"), auths);
+       }
+   }
+   ```
 
-   6. 在启动类添加注解 MapperScan
+6. 在启动类添加注解 MapperScan
 
-      ```java
-      @SpringBootApplication
-      @MapperScan("com.atguigu.securitydemo1.mapper")
-      public class Securitydemo1Application {
-      
-          public static void main(String[] args) {
-              SpringApplication.run(Securitydemo1Application.class, args);
-          }
-      
-      }
-      ```
+   ```java
+   @SpringBootApplication
+   @MapperScan("com.atguigu.securitydemo1.mapper")
+   public class Securitydemo1Application {
+   
+       public static void main(String[] args) {
+           SpringApplication.run(Securitydemo1Application.class, args);
+       }
+   
+   }
+   ```
 
-   7. 数据库配置
+7. 数据库配置
 
-      ```properties
-      spring.datasource.url=jdbc:mysql://localhost:3306/security?serverTimezone=UTC&characterEncoding=utf8&characterSetResults=utf8&autoReconnect=true&failOverReadOnly=false&useSSL=true
-      spring.datasource.username=root
-      spring.datasource.password=Wico@60213030
-      spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
-      ```
+   ```properties
+   spring.datasource.url=jdbc:mysql://localhost:3306/security?serverTimezone=UTC&characterEncoding=utf8&characterSetResults=utf8&autoReconnect=true&failOverReadOnly=false&useSSL=true
+   spring.datasource.username=root
+   spring.datasource.password=Wico@60213030
+   spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+   ```
+
+
+
+### 自定义设置登陆页面不需要认证可以访问
+
+1. 在配置类实现相关的配置,index需要登陆，hello不需要
+
+```java
+@Override
+protected void configure(HttpSecurity http) throws Exception {
+    http.formLogin() //自定义自己编写的登陆页面
+    .loginPage("/login.html")//登陆页面设置
+    .loginProcessingUrl("/user/login")//登陆访问路径
+    .defaultSuccessUrl("/test/index").permitAll()//登陆成功跳转
+    .and().authorizeRequests()//那些需要认证
+    .antMatchers("/","/test/hello","/user/login").permitAll()//那些路径可以直接访问，不需要认证
+    .anyRequest().authenticated()//所有请求都可以访问
+    .and().csrf().disable();//关闭csrf防护
+}
+```
