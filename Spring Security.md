@@ -364,3 +364,78 @@ protected void configure(HttpSecurity http) throws Exception {
     .and().csrf().disable();//关闭csrf防护
 }
 ```
+
+### 基于角色或权限进行访问控制
+
+1. hasAuthority方法
+
+   如果当前的主体具有指定的权限,则返回true,否则返回false,一个路径只能一个权限访问
+
+   1. 在设置类设置当前访问地址有哪些权限
+
+        //当前登陆用户，只有具有admins权限才可以访问这个路径
+
+      ```java
+      @Override
+          protected void configure(HttpSecurity http) throws Exception {
+              http.formLogin() //自定义自己编写的登陆页面
+              .loginPage("/login.html")//登陆页面设置
+              .loginProcessingUrl("/user/login")//登陆访问路径
+              .defaultSuccessUrl("/test/index").permitAll()//登陆成功跳转
+              .and().authorizeRequests()//那些需要认证
+      //        .antMatchers("/","/test/hello","/user/login").permitAll()//那些路径可以直接访问，不需要认证
+                
+               //当前登陆用户，只有具有admins权限才可以访问这个路径
+              .antMatchers("/test/index").hasAuthority("admins")
+              .anyRequest().authenticated()//所有请求都可以访问
+              .and().csrf().disable();//关闭csrf防护
+          }
+      ```
+
+   2. 在UserDeatilsService,把返回User对象设置权限
+
+      ```java
+      //查到的用户给予admins权限
+      List<GrantedAuthority> auths = AuthorityUtils.commaSeparatedStringToAuthorityList("admins");
+      ```
+
+       
+
+2. hasAnyAuthority方法
+
+   ```java
+   //admins和manager都可以访问
+   .antMatchers("/test/index").hasAnyAuthority("admins,manager")
+   ```
+
+3. hasRole方法
+
+   如果用户具备给定角色就允许访问,否则出现403
+
+   如果当前主体具有指定的角色,则返回true
+
+   底层源码
+
+   ```java
+   private static String hasRole(String role) {
+      Assert.notNull(role, "role cannot be null");
+      Assert.isTrue(!role.startsWith("ROLE_"),
+            () -> "role should not start with 'ROLE_' since it is automatically inserted. Got '" + role + "'");
+      return "hasRole('ROLE_" + role + "')";
+   }
+   ```
+
+   ```java
+   //查到的用户给予admins权限和角色
+   List<GrantedAuthority> auths = AuthorityUtils.commaSeparatedStringToAuthorityList("admins,ROLE_sale");
+   ```
+
+   ```java
+   //3 hasRole方法
+   //ROLE_sale
+   .antMatchers("/test/index").hasRole("sale")
+   ```
+
+4. hasAnyRole
+
+   用户具有任何一个都可以访问
