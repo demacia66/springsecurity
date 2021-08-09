@@ -439,3 +439,131 @@ protected void configure(HttpSecurity http) throws Exception {
 4. hasAnyRole
 
    用户具有任何一个都可以访问
+
+### 自定义403页面
+
+1. 在配置类里配置
+
+   ```java
+   @Override
+   protected void configure(HttpSecurity http) throws Exception {
+   
+       //在配置类配置没有权限访问跳转自定义页面
+       http.exceptionHandling().accessDeniedPage("/unauth.html");
+   ```
+
+### 注解使用
+
+1. @Secured
+
+   判断是否具有角色，另外需要注意的是这里匹配的字符串需要添加前缀"ROLE"
+
+   用户具有某个角色，可以访问方法
+
+   1. 先开启注解，可以在配置类或者启动类上
+
+      ```java
+      @SpringBootApplication
+      @MapperScan("com.atguigu.securitydemo1.mapper")
+      //开启spring security注解
+      @EnableGlobalMethodSecurity(securedEnabled = true)
+      public class Securitydemo1Application {
+      
+          public static void main(String[] args) {
+              SpringApplication.run(Securitydemo1Application.class, args);
+          }
+      
+      }
+      ```
+
+   2. 在controller的方法上面使用注解，设置角色
+
+      ```java
+      @GetMapping("update")
+      @Secured({"ROLE_sale","ROLE_manager"})
+      public String update(){
+          return "hello update";
+      }
+      ```
+
+   3. userDetailsService设置用户
+
+      ```java
+      List<GrantedAuthority> auths = AuthorityUtils.commaSeparatedStringToAuthorityList("admins,ROLE_sale");
+      ```
+
+2. @PreAuthorize:注解适合进入方法前的权限验证，@PreAuthorize可以将登录用户的roles/permissions参数传到方法中
+
+   1. 在启动类上开启注解
+
+      ```java
+      @EnableGlobalMethodSecurity(securedEnabled = true,prePostEnabled = true)
+      ```
+
+   2. 在controller的方法上添加注解
+
+      ```java
+      @GetMapping("update")
+      //    @Secured({"ROLE_sale","ROLE_manager"})
+          @PreAuthorize("hasAnyAuthority('admins')")
+          public String update(){
+              return "hello update";
+          }
+      ```
+
+3. @PostAuthorize:注解使用的不多，在方法执行后再进行权限认证，适合验证带有返回值的权限
+
+   1. 先开启注解
+
+      ```java
+      @EnableGlobalMethodSecurity(securedEnabled = true,prePostEnabled = true)
+      ```
+
+   2. 方法上添加注解,没有权限先打印再跳转403
+
+      ```java
+      @GetMapping("update")
+      //    @Secured({"ROLE_sale","ROLE_manager"})
+      //    @PreAuthorize("hasAnyAuthority('admins')")
+          @PostAuthorize("hasAnyAuthority('admins')")
+          public String update(){
+              System.out.println("hello");
+              return "hello update";
+          }
+      ```
+
+4. @PostFilter
+
+   权限认证后对数据进行过滤，留下的用户名为admin1的数据，对返回做过滤,不用启动注解即可
+
+   表达式中的filterObject引用的是方法返回值List中的某一个元素
+
+   ````java
+   @RequestMapping("getAll")
+   @PreAuthorize("hasRole('ROLE_管理员')")
+   @PostFilter("filterObject.username == 'admin1'")
+   @ResponseBody
+   public List<UserInfo> getAllUser(){
+       ArrayList<UserInfo> list = new ArrayList<>();
+       list.add(new UserInfo(1l,"admin1","6666"));
+       list.add(new UserInfo(2l,"admin2","888"));
+       return list;
+   }
+   ````
+
+5. @PreFilter 进入控制器之前对数据进行过滤，对参数过滤
+
+   ````java
+   @RequestMapping("getTestPreFilter")
+   @PreAuthorize("hasRole('ROLE_管理员')")
+   @PreFilter(value = "filterObject.id%2==0")
+   @ResponseBody
+   public List<UserInfo> getTestFilter(@RequestBody List<UserInfo> list){
+       list.fotEach(t-> {
+           System.out.println(t.getId() + "\t" + t.getUsername());
+       });
+       return lis
+   }
+   ````
+
+   

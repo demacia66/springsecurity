@@ -32,6 +32,12 @@ public class SecurityConfigTest extends WebSecurityConfigurerAdapter {
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
+
+        //在配置类配置没有权限访问跳转自定义页面
+        http.exceptionHandling().accessDeniedPage("/unauth.html");
+
+
+
         http.formLogin() //自定义自己编写的登陆页面
                 .loginPage("/login.html")//登陆页面设置
                 .loginProcessingUrl("/user/login")//登陆访问路径
