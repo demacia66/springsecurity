@@ -562,8 +562,91 @@ protected void configure(HttpSecurity http) throws Exception {
        list.fotEach(t-> {
            System.out.println(t.getId() + "\t" + t.getUsername());
        });
-       return lis
+       return list;
    }
    ````
 
-   
+### 用户注销
+
+1. 在配置类添加退出的配置
+
+   ```java
+   //退出
+   http.logout().logoutUrl("/logout").logoutSuccessUrl("/test/hello").permitAll();
+   ```
+
+### 记住我
+
+1. cookie
+
+2. 安全机制实现自动登录
+
+   1. 实现原理
+
+      浏览器存：cookie、加密串
+      数据库：加密串、用户信息字符串
+
+   2. 再次进行访问
+
+      获取cookie信息，拿着cookie信息到数据库中进行比对，如果查询到对应信息，认证成功，可以登录
+
+   3. 具体实现
+
+      - 创建数据库表,建表语句可见JdbcTokenRepositoryImpl类
+
+        ````sql
+        create table persistent_logins (username varchar(64) not null, series varchar(64) primary key,token varchar(64) not null, last_used timestamp not null DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP)ENGINE=InnoDB DEFAULT CHARSET=utf8;
+        ````
+
+      - 配置类，注入数据源，配置操作数据库对象
+
+        ```java
+         //注入数据源
+            @Autowired
+            private DataSource dataSource;
+            //配置对象
+            @Bean
+            public PersistentTokenRepository persistentTokenRepository(){
+                JdbcTokenRepositoryImpl jdbcTokenRepository = new JdbcTokenRepositoryImpl();
+                jdbcTokenRepository.setDataSource(dataSource);
+                //启动时创建表
+        //        jdbcTokenRepository.setCreateTableOnStartup(true);
+                return jdbcTokenRepository;
+            }
+        ```
+
+      - 配置类中配置自动登录
+
+        ````java
+         http.formLogin() //自定义自己编写的登陆页面
+                        .loginPage("/login.html")//登陆页面设置
+                        .loginProcessingUrl("/user/login")//登陆访问路径
+                        .defaultSuccessUrl("/success.html").permitAll()//登陆成功跳转
+                        .and().authorizeRequests()//那些需要认证
+        //        .antMatchers("/","/test/hello","/user/login").permitAll()//那些路径可以直接访问，不需要认证
+                        //当前登陆用户，只有具有admins权限才可以访问这个路径
+        //        .antMatchers("/test/index").hasAuthority("admins")
+                        //admins和manager都可以访问
+        //                .antMatchers("/test/index").hasAnyAuthority("admins,manager")
+        
+                        //3 hasRole方法
+                        //ROLE_sale
+                        .antMatchers("/test/index").hasRole("sale")
+                        .anyRequest().authenticated()//所有请求都可以访问
+                        .and().rememberMe().tokenRepository(persistentTokenRepository())
+                        //60秒可用
+                        .tokenValiditySeconds(60)
+                        //设置userDetail，底层用它来使用数据库
+                        .userDetailsService(userDetailsService)
+                        .and().csrf().disable();//关闭csrf防护
+        ````
+
+      - 在登录页面添加复选框,name一定是remember-me
+
+        ```html
+        <input type="checkbox" name="remember-me">自动登录
+        ```
+
+### CSRF
+
+跨站请求伪造，是一种挟制用户在当前已登录的Web应用程序上执行非本意的操作的攻击方法。跟跨网站脚本相比，XSS利用的是用户对指定网站的信任，CSRF利用的是网站对用户网页浏览器的信任，网站可能得到用户在其他网站的cookie信息，csrf默认是开启的，会针对PATCH，POST，PUT，DELETE方法进行保护
